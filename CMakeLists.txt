@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-project(some C)
+project(crazycarrier C)
 
 # Optional definitions set:
 # OPTION_GLES           for OpenGLES3.0 instead of OpenGL3.3
@@ -33,7 +33,7 @@ file(GLOB SRCS
         "${PROJECT_SOURCE_DIR}/src/p/*"
         )
 
-add_executable(some ${SRCS})
+add_executable(crazycarrier ${SRCS})
 
 # check platform
 if (MINGW)
@@ -56,7 +56,7 @@ endif()
 
 # all platforms:
 add_definitions(-DOPTION_SOCKET)
-target_link_libraries(some m)
+target_link_libraries(crazycarrier m)
 
 # windows
 if (PLATFORM_MINGW)
@@ -67,12 +67,12 @@ if (PLATFORM_MINGW)
     add_definitions(-DOPTION_SDL)
     add_definitions(-DMATHC_NO_PRINT_COLOR)
 
-    # mingw may not find some library, due to missing CMAKE_LIBRARY_PATH lib paths
+    # mingw may not find crazycarrier library, due to missing CMAKE_LIBRARY_PATH lib paths
     find_library(OPENGL_LIB opengl32 REQUIRED)
     find_library(GLEW_LIB glew32 REQUIRED)
     find_library(GLU_LIB glu32 REQUIRED)
 
-    target_link_libraries(some m
+    target_link_libraries(crazycarrier m
             mingw32
             SDL2main
             SDL2
@@ -96,7 +96,7 @@ if (PLATFORM_UNIX)
 
     find_library(GL_LIB GL REQUIRED)
 
-    target_link_libraries(some
+    target_link_libraries(crazycarrier
             ${SDL2_LIBRARIES}
             ${SDL2_IMAGE_LIBRARIES}
             ${SDL2_NET_LIBRARIES}
@@ -108,7 +108,7 @@ if (PLATFORM_UNIX)
     find_library(GLEW_LIB GLEW)
     if (GLEW_LIB)
         add_definitions(-DOPTION_GLEW)
-        target_link_libraries(some ${GLEW_LIB})
+        target_link_libraries(crazycarrier ${GLEW_LIB})
     endif ()
 endif()
 
@@ -130,7 +130,7 @@ if (PLATFORM_MOBILE)
 
     find_library(GLES_LIB GLESv3 REQUIRED)
 
-    target_link_libraries(some
+    target_link_libraries(crazycarrier
             ${SDL2_LIBRARIES}
             ${SDL2_IMAGE_LIBRARIES}
             ${SDL2_NET_LIBRARIES}
