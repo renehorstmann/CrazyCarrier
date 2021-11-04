@@ -56,7 +56,6 @@ endif()
 
 # all platforms:
 add_definitions(-DOPTION_SOCKET)
-add_definitions(-DOPTION_TTF)
 target_link_libraries(some m)
 
 # windows
