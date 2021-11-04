@@ -18,14 +18,14 @@ May / will not work on Apple, because of their poor WebGL2 support.
 
 ## Without Cmake
 
-Instead of cmake, the following call to gcc should work, too.
+Instead of cmake, the following call to gcc may work, too.
 
 ```sh
 mkdir build && cd build
 
 cp -r ../res .
 
-gcc ../src/e/*.c ../src/p/*.c ../src/r/*.c ../src/u/*.c ../src/*.c -I../include/ $(sdl2-config --cflags --libs) -lSDL2_image -lSDL2_net -lglew32 -lopengl32 -lglu32 -DOPTION_GLEW -DOPTION_SDL -DOPTION_SOCKET  -o crazycarrier
+gcc ../src/e/*.c ../src/p/*.c ../src/r/*.c ../src/u/*.c ../src/*.c -I../include/ $(sdl2-config --cflags --libs) -lSDL2_image -lSDL2_net -lglew32 -lopengl32 -lglu32 -DOPTION_GLEW -DOPTION_SDL -DOPTION_SOCKET -o crazycarrier
 ```
 
 ## Author
