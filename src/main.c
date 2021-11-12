@@ -55,7 +55,13 @@ int main(int argc, char **argv) {
 
 
     Highscore highscore = highscore_new_receive("test", "127.0.0.1", 10000);
-    highscore_send_entry(&highscore, highscore_entry_new("Waluigi5", 1000009));
+    highscore_send_entry(&highscore, highscore_entry_new("Mario", 10));
+    highscore_send_entry(&highscore, highscore_entry_new("Luigi", 32));
+    highscore_send_entry(&highscore, highscore_entry_new("Peach", 9));
+    highscore_send_entry(&highscore, highscore_entry_new("Daisy", 4));
+    highscore_send_entry(&highscore, highscore_entry_new("Yoshi", 22));
+    highscore_send_entry(&highscore, highscore_entry_new("Wario", 999));
+    highscore_send_entry(&highscore, highscore_entry_new("Waluigi", 1000));
     highscore_kill(&highscore);
 
     // example code
