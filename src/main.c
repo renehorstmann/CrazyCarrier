@@ -5,6 +5,7 @@
 #include "mathc/mathc.h"
 
 #include "camera.h"
+#include "highscore.h"
 
 
 static struct {
@@ -52,6 +53,10 @@ int main(int argc, char **argv) {
     // init systems
     L.camera = camera_new();
 
+
+    Highscore highscore = highscore_new_receive("test", "127.0.0.1", 10000);
+    highscore_send_entry(&highscore, highscore_entry_new("Waluigi", 1000009));
+    highscore_kill(&highscore);
 
     // example code
     // update camera to  init camera.left, ...
