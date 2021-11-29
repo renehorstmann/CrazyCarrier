@@ -1,6 +1,10 @@
 #include "rhc/error.h"
 #include "rhc/log.h"
+#include "mathc/utils/camera.h"
+#include "r/texture.h"
 #include "r/texture2d.h"
+#include "r/ro_text.h"
+#include "r/ro_particlerefract.h"
 #include "r/render.h"
 
 
@@ -50,14 +54,14 @@ rRender *r_render_new(SDL_Window *window) {
     glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &max_vertex_attributes);
     if (max_vertex_attributes < 16) {
         log_warn("r_render_new: OpenGL failed: only has %d/16 vertex attributes", max_vertex_attributes);
-        //exit(EXIT_FAILURE);
+        r_exit_failure();
     }
 
     int max_texture_units;
     glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &max_texture_units);
     if (max_texture_units < 3) {
         log_warn("r_render_new: OpenGL failed: only has %d/3 framebuffer texture units", max_texture_units);
-        //exit(EXIT_FAILURE);
+        r_exit_failure();
     }
 
     // startup "empty" texture
@@ -124,7 +128,7 @@ void r_render_blit_framebuffer(const rRender *self, int cols, int rows) {
     // renew texture, if size changed
     if (singleton.framebuffer_tex.size.x != cols || singleton.framebuffer_tex.size.y != rows) {
         r_texture2d_kill(&singleton.framebuffer_tex);
-        singleton.framebuffer_tex = r_texture2d_new_empty(cols, rows);
+        singleton.framebuffer_tex = r_texture2d_new(cols, rows,  NULL);
 
         glBindFramebuffer(GL_FRAMEBUFFER, singleton.framebuffer_tex_fbo);
 
@@ -146,14 +150,11 @@ void r_render_blit_framebuffer(const rRender *self, int cols, int rows) {
     r_render_error_check("r_render_blit_framebuffer");
 }
 
-void r_render_error_check_impl_(const char *opt_tag) {
-#ifdef NDEBUG
-    return
-#endif
-
+bool r_render_error_check_impl_(const char *opt_tag) {
     static GLenum errs[32];
     int errs_size = 0;
     GLenum err;
+    bool unexpected_error = false;
     while ((err = glGetError()) != GL_NO_ERROR) {
         for (int i = 0; i < errs_size; i++) {
             if (err == errs[i])
@@ -202,5 +203,88 @@ void r_render_error_check_impl_(const char *opt_tag) {
 
         if (errs_size < 32)
             errs[errs_size++] = err;
+
+        unexpected_error = true;
     }
+
+    return unexpected_error;
 }
+
+
+//
+// r_render_show_startup
+//
+
+#define CAMERA_SIZE 180 // *4=720; *6=1080; *8=1440
+
+#define AUTHOR_SIZE 2.0
+
+// copy from u/pose.h
+static mat4 u_pose_new(float x, float y, float w, float h) {
+    // mat4 has column major order
+    return (mat4) {{
+                           w, 0, 0, 0,
+                           0, h, 0, 0,
+                           0, 0, 1, 0,
+                           x, y, 0, 1
+                   }};
+}
+
+
+static mat4 camera(int wnd_width, int wnd_height) {
+    float smaller_size = wnd_width < wnd_height ? wnd_width : wnd_height;
+    float real_pixel_per_pixel = floorf(smaller_size / CAMERA_SIZE);
+
+    float width_2 = wnd_width / (2 *  real_pixel_per_pixel);
+    float height_2 = wnd_height / (2 * real_pixel_per_pixel);
+
+    // begin: (top, left) with a full pixel
+    // end: (bottom, right) with a maybe splitted pixel
+    float left = -floorf(width_2);
+    float top = floorf(height_2);
+    float right = width_2 + (width_2 - floorf(width_2));
+    float bottom = -height_2 - (height_2 - floorf(height_2));
+    return mat4_camera_ortho(left, right, bottom, top, -1, 1);
+}
+
+void r_render_show_startup(const rRender *self, int cols, int rows, float block_time, const char *author) {
+    RoText author_text;
+    RoParticleRefract test;
+    
+    author_text = ro_text_new_font85(32);
+    vec2 text_size = ro_text_set_text(&author_text, author);
+    author_text.pose = u_pose_new(-text_size.x * AUTHOR_SIZE / 2, 0, AUTHOR_SIZE, AUTHOR_SIZE);
+    ro_text_set_color(&author_text, R_COLOR_WHITE);
+    
+    test = ro_particlerefract_new(1,
+            r_texture_new_white_pixel(),
+            r_texture_new_white_pixel());
+    test.rects[0].color.a=0;
+    ro_particlerefract_update(&test);
+    
+    // render
+    r_render_begin_frame(self, cols, rows);
+    mat4 cam = camera(cols, rows);
+    ro_text_render(&author_text, &cam);
+    r_render_blit_framebuffer(self, cols, rows);
+    ro_particlerefract_render(&test, 0, &cam, 1, NULL, NULL);
+    r_render_end_frame(self);
+    
+    // check error and abort
+     if(r_render_error_check_impl_("e_r_startup")) {
+        log_error("Unexpected OpenGL errors occured while checking in startup");
+        r_exit_failure();
+    }
+    
+    // clean up and block
+    ro_text_kill(&author_text);
+    ro_particlerefract_kill(&test);
+    
+    
+#ifdef __EMSCRIPTEN__
+    emscripten_sleep((Uint32) (block_time*1000));
+#else
+    SDL_Delay((Uint32) (block_time*1000));
+#endif
+}
+

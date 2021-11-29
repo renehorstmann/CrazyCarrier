@@ -97,6 +97,7 @@ static void resume_wnd() {
     singleton.pause = false;
 }
 
+
 static void log_window_event(const SDL_Event *event);
 
 //
@@ -129,10 +130,10 @@ void e_window_handle_window_event_(const SDL_Event *event) {
 // public
 //
 
-eWindow *e_window_new(const char *name) {
+eWindow *e_window_new(const char *title) {
     assume(!singleton_created, "e_window_new should be called only onve");
     singleton_created = true;
-
+    
 #ifdef NDEBUG
     rhc_log_set_min_level(RHC_LOG_WARN);
 #else
@@ -141,7 +142,7 @@ eWindow *e_window_new(const char *name) {
 
     if (SDL_Init(E_SDL_INIT_FLAGS) != 0) {
         log_error("e_window_new: SDL_Init failed: %s", SDL_GetError());
-        exit(EXIT_FAILURE);
+        e_exit_failure();
     }
 
 
@@ -149,14 +150,14 @@ eWindow *e_window_new(const char *name) {
     int imgFlags = IMG_INIT_PNG;
     if (!(IMG_Init(imgFlags) & imgFlags)) {
         log_error("e_window_new: IMG_Init failed: %s", IMG_GetError());
-        exit(EXIT_FAILURE);
+        e_exit_failure();
     }
 
 #ifdef OPTION_TTF
     // initialize TTF
     if (TTF_Init() == -1) {
         log_error("e_window_new: TTF_Init failed: %s", TTF_GetError());
-        exit(EXIT_FAILURE);
+        e_exit_failure();
     }
 #endif
 
@@ -164,7 +165,7 @@ eWindow *e_window_new(const char *name) {
     // initialize net
     if (SDLNet_Init() == -1) {
         log_error("e_window_new: SDLNet_Init failed: %s", SDLNet_GetError());
-        exit(EXIT_FAILURE);
+        e_exit_failure();
     }
 #endif
 
@@ -177,7 +178,7 @@ eWindow *e_window_new(const char *name) {
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
     // create window
-    singleton.window = SDL_CreateWindow(name,
+    singleton.window = SDL_CreateWindow(title,
             SDL_WINDOWPOS_UNDEFINED,
             SDL_WINDOWPOS_UNDEFINED,
             640, 480,
@@ -186,7 +187,7 @@ eWindow *e_window_new(const char *name) {
             );
     if (!singleton.window) {
         log_error("e_window_new: SDL_CreateWindow failed: %s", SDL_GetError());
-        exit(EXIT_FAILURE);
+        e_exit_failure();
     }
     SDL_SetWindowMinimumSize(singleton.window, 480, 320);
     
@@ -195,7 +196,7 @@ eWindow *e_window_new(const char *name) {
     singleton.gl_context = SDL_GL_CreateContext(singleton.window);
     if (!singleton.gl_context) {
         log_error("e_window_new: SDL_GL_CreateContext failed: %s", SDL_GetError());
-        exit(EXIT_FAILURE);
+        e_exit_failure();
     }
     SDL_GL_SetSwapInterval(1);  // (0=off, 1=V-Sync, -1=addaptive V-Sync)
 
@@ -204,7 +205,7 @@ eWindow *e_window_new(const char *name) {
     if (GLEW_OK != err) {
         /* Problem: glewInit failed, something is seriously wrong. */
         log_error( "e_window_new faled: %s", glewGetErrorString(err));
-        exit(EXIT_FAILURE);
+        e_exit_failure();
     }
     log_info("e_window_new: Using GLEW version: %s", glewGetString(GLEW_VERSION));
 #endif
@@ -228,6 +229,7 @@ void e_window_kill(eWindow **self_ptr) {
     
 #ifdef __EMSCRIPTEN__
     emscripten_cancel_main_loop();
+    EM_ASM(set_error_img(););
 #endif
 
     // will be killed in the main loop

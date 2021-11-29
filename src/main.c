@@ -7,7 +7,6 @@
 #include "camera.h"
 #include "highscore.h"
 
-
 static struct {
     eWindow *window;
     eInput *input;
@@ -16,16 +15,20 @@ static struct {
 
     Camera_s camera;
 
-    // example code:
+    //// example code:
     // 'R'ender'o'bject
     // renders text via RoBatch
     RoText text;
     RoText text85;
     // stores the last pressed mouse click / touch to render with RoText text
     ePointer_s last_click;
+    ////
+
+    HighscoreEntry_s best;
 } L;
 
 
+//// example code
 // will be called on mouse or touch events
 static void on_pointer_callback(ePointer_s pointer, void *ud) {
     if (pointer.action != E_POINTER_DOWN)
@@ -34,10 +37,9 @@ static void on_pointer_callback(ePointer_s pointer, void *ud) {
     printf("clicked at x=%f, y=%f, id=%i, is touch: %i\n",
            pointer.pos.x, pointer.pos.y, pointer.id, e_input_is_touch(L.input));
 }
-//
+////
 
 static void main_loop(float delta_time);
-
 
 int main(int argc, char **argv) {
     log_info("some");
@@ -47,46 +49,56 @@ int main(int argc, char **argv) {
     L.input = e_input_new(L.window);
     L.gui = e_gui_new(L.window);
 
+    ivec2 window_size = e_window_get_size(L.window);
+
     // init r (render)
     L.render = r_render_new(e_window_get_sdl_window(L.window));
+
+    // the startup screen acts as loading screen and also checks for render errors
+    r_render_show_startup(L.render,
+                          window_size.x, window_size.y,
+                          1.0, // block time
+                          "Horsimann");
 
     // init systems
     L.camera = camera_new();
 
 
-    Highscore highscore = highscore_new_receive("test", "127.0.0.1", 10000, 10001);
-    highscore_send_entry(&highscore, highscore_entry_new("Mario", 10));
-    highscore_send_entry(&highscore, highscore_entry_new("Luigi", 32));
-    highscore_send_entry(&highscore, highscore_entry_new("Peach", 9));
-    highscore_send_entry(&highscore, highscore_entry_new("Daisy", 4));
-    highscore_send_entry(&highscore, highscore_entry_new("Yoshi", 22));
-    highscore_send_entry(&highscore, highscore_entry_new("Wario", 999));
-    highscore_send_entry(&highscore, highscore_entry_new("Waluigi", 10090));
-    highscore_kill(&highscore);
-
-    // example code
-    // update camera to  init camera.left, ...
-    ivec2 window_size = e_window_get_size(L.window);
+    //// example code
+    // update camera to init camera.left, ...
     camera_update(&L.camera, window_size.x, window_size.y);
     // class init of RoText
     // RoText *self, int max_chars, const float *camera_vp_matrix
     L.text = ro_text_new_font55(128);
     // see u/pose.h, sets a mat4 transformation pose
-    u_pose_set_xy(&L.text.pose, L.camera.RO.left + 5, 10);
-    
+    // most render objects got their xy positions as a center point, but for text its top left
+    u_pose_set_xy(&L.text.pose, L.camera.RO.left + 5, -10);
     // font 85 contains full ascii chars
     L.text85 = ro_text_new_font85(128);
-    u_pose_set_xy(&L.text85.pose, L.camera.RO.left + 5, -30);
-
+    u_pose_set_xy(&L.text85.pose, L.camera.RO.left + 5, -40);
     // setup a pointer listener
     e_input_register_pointer_event(L.input, on_pointer_callback, NULL);
-
-    // set clear color
+    // set clear color = background color
     *r_render_clear_color(L.render) = (vec4) {0.5, 0.75, 0.5, 1};
-    //
-    
+    ////
+
+
+    Highscore highscore = highscore_new_receive("test", "rohl.svenhuis.de", 10000, 10001);
+//    highscore_send_entry(&highscore, highscore_entry_new("Mario", 10));
+//    highscore_send_entry(&highscore, highscore_entry_new("Luigi", 32));
+//    highscore_send_entry(&highscore, highscore_entry_new("Peach", 9));
+//    highscore_send_entry(&highscore, highscore_entry_new("Daisy", 4));
+//    highscore_send_entry(&highscore, highscore_entry_new("Yoshi", 22));
+//    highscore_send_entry(&highscore, highscore_entry_new("Wario", 999));
+//    highscore_send_entry(&highscore, highscore_entry_new("Waluigi", 10095));
+    if(highscore.entries_size>0)
+        L.best = highscore.entries[0];
+    highscore_kill(&highscore);
+
+    // start the main loop, blocking call
     e_window_main_loop(L.window, main_loop);
 
+    // clean up
     r_render_kill(&L.render);
     e_gui_kill(&L.gui);
     e_input_kill(&L.input);
@@ -111,39 +123,58 @@ static void main_loop(float delta_time) {
     r_render_begin_frame(L.render, window_size.x, window_size.y);
 
 
-    // example code
+    //// example code
     static float val = 10;
-    //creates a debug window to set val
+    // creates a debug window to set val
     // min, max, step
-    e_gui_wnd_float_attribute(L.gui, "val", &val, 0, 100, 5);
+    e_gui_float("val", &val, 0, 100);
+    //
+    // creates a debug window to set the clear color
+    vec4 *clear_color = r_render_clear_color(L.render);
+    e_gui_rgb("background", (vec3*) clear_color);
+    //
+    // create a text (font55) and render it
     char buf[128];
-    snprintf(buf, 128, "Hello World\nval=%5.1f\nspace pressed: %i\nid=%i x=%.2f y=%.2f" ,
-             val, e_input_get_keys(L.input).space, L.last_click.id, L.last_click.pos.x, L.last_click.pos.y);
+    snprintf(buf, 128,
+             "Hello World\n"
+             "val=%5.1f\n"
+             "space pressed: %i\n"
+             "id=%i x=%.2f y=%.2f\n"
+             "best: %s = %i",
+             val, e_input_get_keys(L.input).space, L.last_click.id, L.last_click.pos.x, L.last_click.pos.y,
+             L.best.name, L.best.score);
     // RoText methods: set text, render
     ro_text_set_text(&L.text, buf);
     ro_text_render(&L.text, camera_mat);
-    
+    //
+    // render the text (font85) with a rainbow animation with hsv
     static vec3 hsv = {{0, 1, 1}};
     hsv.v0 += delta_time*90;
-    
-    snprintf(buf, 128, "#include <stdio.h>\nint main() {\n  puts(\"Hello World\");\n}");
+    //
+    snprintf(buf, 128,
+             "#include <stdio.h>\n"
+             "int main() {\n"
+             "  puts(\"Hello World\");\n"
+             "}\n"
+             "// some framework\n"
+             "// by Horsimann");
     for(int i=0; i<128; i++) {
-       vec3 tmp = hsv;
-       tmp.v0 = sca_mod(tmp.v0 + i*3, 360);
-       L.text85.ro.rects[i].color.xyz = vec3_hsv2rgb(tmp);
+        vec3 tmp = hsv;
+        tmp.v0 = sca_mod(tmp.v0 + i*3, 360);
+        // access the texts internal RoBatch's rRect's to change the color of each char
+        L.text85.ro.rects[i].color.xyz = vec3_hsv2rgb(tmp);
     }
     ro_text_set_text(&L.text85, buf);
     ro_text_render(&L.text85, camera_mat);
-    //
+    ////
 
 
     // uncomment to clone the current framebuffer into r_render.framebuffer_tex
-    // r_render_blit_framebuffer(e_window.size.x, e_window.size.y);
+    // r_render_blit_framebuffer(L.render, window_size.x, window_size.y);
 
+    // renders the debug gui windows
     e_gui_render(L.gui);
 
     // swap buffers
     r_render_end_frame(L.render);
 }
-
-
