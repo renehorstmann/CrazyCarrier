@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
     L.camera = camera_new();
 
 
-    Highscore highscore = highscore_new_receive("test", "127.0.0.1", 10000);
+    Highscore highscore = highscore_new_receive("test", "127.0.0.1", 10000, 10001);
     highscore_send_entry(&highscore, highscore_entry_new("Mario", 10));
     highscore_send_entry(&highscore, highscore_entry_new("Luigi", 32));
     highscore_send_entry(&highscore, highscore_entry_new("Peach", 9));
