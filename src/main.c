@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
     highscore_send_entry(&highscore, highscore_entry_new("Daisy", 4));
     highscore_send_entry(&highscore, highscore_entry_new("Yoshi", 22));
     highscore_send_entry(&highscore, highscore_entry_new("Wario", 999));
-    highscore_send_entry(&highscore, highscore_entry_new("Waluigi", 1000));
+    highscore_send_entry(&highscore, highscore_entry_new("Waluigi", 10090));
     highscore_kill(&highscore);
 
     // example code
